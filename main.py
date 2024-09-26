@@ -21,7 +21,13 @@ class FunctionInputs(AutomateBase):
     https://docs.pydantic.dev/latest/usage/models/
     """
 
-    # An example of how to use secret values.
+    # TODO: Add the inputs to the automate function here
+    test_input_name: str = Field(
+        ...,
+        title="Test Input",
+        )
+    
+    # TODO: remove... An example of how to use secret values.
     whisper_message: SecretStr = Field(title="This is a secret message")
     forbidden_speckle_type: str = Field(
         title="Forbidden speckle type",
@@ -44,7 +50,8 @@ def automate_function(
             It gives access to the Speckle project data that triggered this run.
             It also has convenient methods for attaching result data to the Speckle model.
         function_inputs: An instance object matching the defined schema.
-    """
+    """ 
+    # TODO: add the logic of the   
     # The context provides a convenient way to receive the triggering version.
     version_root_object = automate_context.receive_version()
 
@@ -79,7 +86,7 @@ def automate_function(
 
     # If the function generates file results, this is how it can be
     # attached to the Speckle project/model
-    # automate_context.store_file_result("./report.pdf")
+    automate_context.store_file_result("./report.pdf")
 
 
 def automate_function_without_inputs(automate_context: AutomationContext) -> None:
