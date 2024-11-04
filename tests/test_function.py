@@ -23,6 +23,7 @@ def test_function_run(test_automation_run_data: AutomationRunData, test_automati
         automation_context,
         automate_function,
         FunctionInputs(
+            test_input_name="TestMessage",
             forbidden_speckle_type="None",
             whisper_message=SecretStr("testing automatically"),
         ),

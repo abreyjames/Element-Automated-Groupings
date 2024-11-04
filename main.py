@@ -9,8 +9,11 @@ from speckle_automate import (
     AutomationContext,
     execute_automate_function,
 )
+from specklepy.objects.geometry import Base
 
+from computations.beam_categories import Line, Node, classify_line_orientation
 from flatten import flatten_base
+from project.project import Project
 
 
 class FunctionInputs(AutomateBase):
@@ -22,11 +25,17 @@ class FunctionInputs(AutomateBase):
     """
 
     # TODO: Add the inputs to the automate function here
+    # results_model_name: str = Field(
+    #     ...,
+    #     title="Branch name of the results model to send the classified data too.",
+    # )
+
+    # TODO: Add the inputs to the automate function here
     test_input_name: str = Field(
         ...,
         title="Test Input",
-        )
-    
+    )
+
     # TODO: remove... An example of how to use secret values.
     whisper_message: SecretStr = Field(title="This is a secret message")
     forbidden_speckle_type: str = Field(
@@ -42,51 +51,51 @@ def automate_function(
     automate_context: AutomationContext,
     function_inputs: FunctionInputs,
 ) -> None:
-    """This is an example Speckle Automate function.
+    # Step 1: get input of the submodel to send the results too
+    # EG. Analytical to Geometric Coordination
+    commit = automate_context.receive_version()
+    model_element = commit["@Model"]
 
-    Args:
-        automate_context: A context-helper object that carries relevant information
-            about the runtime context of this function.
-            It gives access to the Speckle project data that triggered this run.
-            It also has convenient methods for attaching result data to the Speckle model.
-        function_inputs: An instance object matching the defined schema.
-    """ 
-    # TODO: add the logic of the   
-    # The context provides a convenient way to receive the triggering version.
-    version_root_object = automate_context.receive_version()
+    elements = getattr(model_element, "elements", None)
 
-    objects_with_forbidden_speckle_type = [
-        b
-        for b in flatten_base(version_root_object)
-        if b.speckle_type == function_inputs.forbidden_speckle_type
-    ]
-    count = len(objects_with_forbidden_speckle_type)
+    if not elements:
+        raise Exception
+        # show the user if there are any elements
 
-    if count > 0:
-        # This is how a run is marked with a failure cause.
-        automate_context.attach_error_to_objects(
-            category="Forbidden speckle_type"
-            f" ({function_inputs.forbidden_speckle_type})",
-            object_ids=[o.id for o in objects_with_forbidden_speckle_type if o.id],
-            message="This project should not contain the type: "
-            f"{function_inputs.forbidden_speckle_type}",
-        )
-        automate_context.mark_run_failed(
-            "Automation failed: "
-            f"Found {count} object that have one of the forbidden speckle types: "
-            f"{function_inputs.forbidden_speckle_type}"
-        )
+    # There could be surfaces too!!! using the speckle type to filter between surfaces and 1D
+    for element in elements:
+        baseLine = element.baseLine
 
-        # Set the automation context view to the original model/version view
-        # to show the offending objects.
-        automate_context.set_context_view()
+        start_node = Node(baseLine.start.id, baseLine.start.x,
+                          baseLine.start.y, baseLine.start.z)
+        end_node = Node(baseLine.end.id, baseLine.end.x,
+                        baseLine.end.y, baseLine.end.z)
+        line = Line(baseLine.id, start_node, end_node)
 
-    else:
-        automate_context.mark_run_success("No forbidden types found.")
+        classification = classify_line_orientation(line)
+        print(classification)
 
-    # If the function generates file results, this is how it can be
-    # attached to the Speckle project/model
-    automate_context.store_file_result("./report.pdf")
+        element["classification"] = classification
+
+        # Get the shape
+        section_name = element.property.name
+
+        # run mesh function for the shape
+
+        # Return the mesh to the speckle data
+
+        # override the element.displayValue with mesh value (don't worry about colour)
+
+    speckle_results_model = Project(automate_context.speckle_client,
+                                    automate_context.automation_run_data.project_id,
+                                    # function_inputs.results_model)
+                                    "sap/classified_results")
+    speckle_results_model.get_results_model()
+
+    commit_object = Base()
+    commit_object["elements"] = elements
+
+    speckle_results_model.send_results_model(commit_object)
 
 
 def automate_function_without_inputs(automate_context: AutomationContext) -> None:
