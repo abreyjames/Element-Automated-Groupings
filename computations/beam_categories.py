@@ -146,13 +146,3 @@ def is_line_above_overall_midpoint(line, lines):
 
     # Compare the z-coordinates of the line's midpoint and the overall midpoint
     return line_mid_z > overall_midpoint[2]  # True if above, False otherwise
-
-
-# Define nodes and a line
-node_start = Node(id='N1', x=0, y=0, z=0)
-node_end = Node(id='N2', x=0, y=10, z=0)
-line = Line(id='L1', start_node=node_start, end_node=node_end)
-
-# Classify line orientation
-result = classify_line_orientation(line)
-print(result)  # Outputs: 'Vertical'

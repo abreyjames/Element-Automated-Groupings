@@ -14,6 +14,8 @@ from specklepy.objects.geometry import Base
 from computations.beam_categories import Line, Node, classify_line_orientation
 from flatten import flatten_base
 from project.project import Project
+from utils.units import ModelUnits
+from visualizer.visualizer import ElementVisualizer
 
 
 class FunctionInputs(AutomateBase):
@@ -54,9 +56,9 @@ def automate_function(
     # Step 1: get input of the submodel to send the results too
     # EG. Analytical to Geometric Coordination
     commit = automate_context.receive_version()
-    model_element = commit["@Model"]
+    model_element = commit['@Model']
 
-    elements = getattr(model_element, "elements", None)
+    elements = getattr(model_element, 'elements', None)
 
     if not elements:
         raise Exception
@@ -75,16 +77,19 @@ def automate_function(
         classification = classify_line_orientation(line)
         print(classification)
 
-        element["classification"] = classification
-
-        # Get the shape
-        section_name = element.property.name
+        element['classification'] = classification
 
         # run mesh function for the shape
+        units = ModelUnits('m', 'N')
+        visualizer = ElementVisualizer(element, units)
+        print(visualizer)
 
         # Return the mesh to the speckle data
+        speckle_mesh = visualizer.visualize()
+        print(speckle_mesh)
 
         # override the element.displayValue with mesh value (don't worry about colour)
+        element['displayValue'] = speckle_mesh
 
     speckle_results_model = Project(automate_context.speckle_client,
                                     automate_context.automation_run_data.project_id,
@@ -93,7 +98,7 @@ def automate_function(
     speckle_results_model.get_results_model()
 
     commit_object = Base()
-    commit_object["elements"] = elements
+    commit_object['elements'] = elements
 
     speckle_results_model.send_results_model(commit_object)
 
